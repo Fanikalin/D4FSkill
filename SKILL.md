@@ -1,28 +1,36 @@
 ---
 name: deepseek4free
 description: >-
-  Use for token-heavy tasks that don't need Claude's full reasoning: bulk text rewriting,
-  large-volume reformatting, draft generation, proofreading, translation, summarization,
-  boilerplate expansion, or any task where you'd otherwise spend many Claude tokens on
-  repetitive text work. Routes the request through a free local DeepSeek proxy.
-  The model is less capable than Claude but completely free and significantly faster on
-  large volumes. Automatically starts the server when invoked.
+  Use for token-heavy tasks that don't need Claude's / the agent's full reasoning: bulk
+  text rewriting, large-volume reformatting, draft generation, proofreading, translation,
+  summarization, boilerplate expansion, or any task where you'd otherwise spend many tokens
+  on repetitive text work. Routes the request through a free local DeepSeek proxy instead.
+  The model is less capable but completely free and significantly faster on large volumes.
+  Automatically starts the server when invoked.
+version: 1.0.0
+author: Fanikalin
+license: MIT
+platforms: [linux, macos, windows]
+metadata:
+  hermes:
+    tags: [tokens, deepseek, free-model, bulk-text, rewrite, summarize, translate, offload]
+    related_skills: []
 ---
 
 # DeepSeek4Free Skill
 
 ## What this skill does
 
-Offloads token-expensive, bulk text tasks from Claude to a **free local DeepSeek proxy**
-running at `http://localhost:11434`. The proxy emulates the Ollama and OpenAI APIs and
-communicates with DeepSeek Chat in the background.
+Offloads token-expensive, bulk text tasks to a **free local DeepSeek proxy** running at
+`http://localhost:11434`. The proxy emulates the Ollama and OpenAI APIs and communicates
+with DeepSeek Chat in the background — no paid API key required.
 
 **Model trade-off:**
 - DeepSeek Chat is **free** (no API tokens consumed) and **faster** on large volumes.
-- It is **less capable** than Claude — it may produce lower-quality reasoning, miss nuance,
-  and struggle with complex multi-step logic.
-- Use it for mechanical, high-volume work; keep Claude for analysis, architecture, and
-  anything that requires careful judgment.
+- It is **less capable** — it may produce lower-quality reasoning, miss nuance, and struggle
+  with complex multi-step logic.
+- Use it for mechanical, high-volume work; keep the primary model for analysis, architecture,
+  and anything that requires careful judgment.
 
 ## ⚠️ Privacy warning — read before every use
 
@@ -38,7 +46,7 @@ server as **publicly accessible**.
 - Private messages, confidential conversations, or anything the owner hasn't consented to share
 
 If there is **any doubt** about whether the data is sensitive, do NOT use this skill — use
-Claude directly instead.
+the primary model directly instead.
 
 ## When to invoke this skill
 
@@ -46,7 +54,7 @@ Trigger it when the task is:
 - Rewriting or reformatting a **large block of text** (hundreds of lines, many files)
 - Generating boilerplate, filler prose, docstrings, or repetitive structure
 - Proofreading / spell-checking a large document
-- Translating text (especially when Claude tokens are scarce)
+- Translating text (especially when tokens are scarce)
 - Summarizing long documents or logs
 - Expanding bullet points into full paragraphs
 - Any task where the user says "use DeepSeek" or "save tokens"
@@ -54,7 +62,7 @@ Trigger it when the task is:
 Do **not** use it for:
 - Complex architectural decisions or security review
 - Tasks requiring deep reasoning across many files
-- Anything the user explicitly wants Claude to handle
+- Anything the user explicitly wants the primary model to handle
 
 ## Server location
 
@@ -77,18 +85,16 @@ curl -s http://localhost:11434/ | grep -q "Deepseek4Free" && echo "Server starte
 ```
 
 If startup fails, show the user the last 20 lines of `/tmp/d4f.log` and stop — do not fall back
-silently to Claude without telling the user.
+silently without telling the user.
 
-**One-time setup** — if the server has never been configured:
+**One-time setup** — if `.api_keys` is missing or empty:
 ```bash
-ls ~/.local/share/d4fskill/server/.api_keys 2>/dev/null || echo "MISSING"
+cat ~/.local/share/d4fskill/server/.api_keys 2>/dev/null | grep -v '^#' | grep -qv '^\s*$' && echo "OK" || echo "MISSING"
 ```
 If missing, the user needs to add a DeepSeek token:
-```
-~/.local/share/d4fskill/server/.api_keys
-```
-Format: `<label> <token>` (one per line).
-Token location: [deepseek.com](https://chat.deepseek.com) → F12 → Application → Local Storage → `userToken`.
+- File: `~/.local/share/d4fskill/server/.api_keys`
+- Format: `<label> <token>` (one per line)
+- Token: [chat.deepseek.com](https://chat.deepseek.com) → F12 → Application → Local Storage → `userToken`
 
 ## Step 2 — Send the request
 
@@ -142,7 +148,7 @@ curl -s -X POST http://localhost:11434/v1/chat/completions \
 ## Step 3 — Handle errors
 
 If the server returns a non-200 status or the response contains `"error"`, show the error
-and tell the user. Do not silently fall back to Claude — the user chose this skill to save tokens.
+and tell the user. Do not silently fall back — the user chose this skill to save tokens.
 
 Common issues:
 - **500 / PoW failure** — DeepSeek's anti-bot protection refreshed; the server retries
