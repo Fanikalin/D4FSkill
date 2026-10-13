@@ -1,22 +1,51 @@
 #!/usr/bin/env bash
-# D4FSkill installer — registers the deepseek4free skill in Claude Code
+# D4FSkill installer
+# Installs the server to ~/.local/share/d4fskill/ and registers the skill in Claude Code.
 set -e
 
-SKILL_DIR="$HOME/.claude/skills/deepseek4free"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVER_SRC="$SCRIPT_DIR/server"
+SERVER_DST="$HOME/.local/share/d4fskill/server"
+SKILL_DIR="$HOME/.claude/skills/deepseek4free"
 
-echo "Installing D4FSkill..."
+echo "=== D4FSkill installer ==="
+echo ""
 
+# 1. Copy server files
+echo "Installing server to $SERVER_DST ..."
+mkdir -p "$SERVER_DST"
+cp -r "$SERVER_SRC"/. "$SERVER_DST/"
+
+# 2. Create .api_keys if missing
+if [ ! -f "$SERVER_DST/.api_keys" ]; then
+    cp "$SERVER_DST/.api_keys.example" "$SERVER_DST/.api_keys"
+    echo ""
+    echo "  Created $SERVER_DST/.api_keys from example."
+    echo "  ACTION REQUIRED: add your DeepSeek token to that file."
+    echo "  Format: <label> <token>  (one per line)"
+    echo "  Get the token: deepseek.com → F12 → Application → Local Storage → userToken"
+fi
+
+# 3. Create Python venv and install dependencies
+echo ""
+echo "Setting up Python virtual environment ..."
+python3 -m venv "$SERVER_DST/.venv"
+"$SERVER_DST/.venv/bin/pip" install --quiet --upgrade pip
+"$SERVER_DST/.venv/bin/pip" install --quiet -r "$SERVER_DST/requirements.txt"
+echo "Dependencies installed."
+
+# 4. Install Claude Code skill
+echo ""
+echo "Installing Claude Code skill to $SKILL_DIR ..."
 mkdir -p "$SKILL_DIR"
 cp "$SCRIPT_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
 
-echo "Skill installed to $SKILL_DIR"
 echo ""
-echo "The skill will appear as /deepseek4free in Claude Code."
+echo "=== Done ==="
 echo ""
-echo "Prerequisites:"
-echo "  1. Clone deepseek4free: https://github.com/Fanikalin/deepseek4free"
-echo "  2. Set it up: cd ~/Projects/deepseek4free && python -m venv .venv && .venv/bin/pip install -r requirements.txt"
-echo "  3. Add your DeepSeek token to ~/Projects/deepseek4free/.api_keys"
-echo "     Format: <label> <token>  (one per line)"
-echo "     Get the token: deepseek.com → F12 → Application → Local Storage → userToken"
+echo "The skill is now available as /deepseek4free in Claude Code."
+echo ""
+echo "Start the server manually:"
+echo "  cd $SERVER_DST && nohup .venv/bin/python main.py > /tmp/d4f.log 2>&1 &"
+echo ""
+echo "Or let Claude start it automatically when you invoke /deepseek4free."

@@ -1,0 +1,5 @@
+# DeepSeek auth tokens — one per line: <label> <token>
+# Get the token from: https://chat.deepseek.com → F12 → Application → Local Storage → userToken
+#
+# Example:
+# myaccount eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
